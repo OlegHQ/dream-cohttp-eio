@@ -6,7 +6,7 @@
 
 
 let random_buffer n =
-  Mirage_crypto_rng.generate n
+  Cstruct.of_string (Mirage_crypto_rng.generate n)
 
 let random n =
   Cstruct.to_string (random_buffer n)
