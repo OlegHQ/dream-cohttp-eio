@@ -137,8 +137,7 @@ let wrap_handler
   let httpaf_request_handler
       (connection : Cohttp_eio.Server.conn)
       (request : Cohttp_http.Request.t)
-      (body : Cohttp_eio.Server.body)
-      : (Cohttp_http.Response.t * Cohttp_eio.Server.body) =
+      (body : Cohttp_eio.Server.body) =
 
     Log.set_up_exception_hook ();
 
@@ -185,9 +184,10 @@ let wrap_handler
         (Stream_adapter.create response,
         Eio.Flow.Pi.source (module Stream_adapter)) in
 
+    Message.set_content_length_headers response;
     Cohttp_eio.Server.respond
       ~status:(to_cohttp_status (Message.status response))
-      ~headers:(Cohttp.Header.of_list (Message.all_headers response))
+      ~headers:(Cohttp_http.Header.of_list (Message.all_headers response))
       ~body:response_body ()
   in
 
