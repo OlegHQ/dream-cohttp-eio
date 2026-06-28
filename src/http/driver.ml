@@ -850,7 +850,11 @@ let run
         | Sys.Signal_ignore -> ignore ()
         | Sys.Signal_default ->
           Sys.set_signal signal Sys.Signal_default;
-          Unix.kill (Unix.getpid ()) signal)
+          let pid = Unix.getpid () in
+          if pid = 1 then
+            exit (128 + abs signal)
+          else
+            Unix.kill pid signal)
   in
 
   create_handler Sys.sigint;
