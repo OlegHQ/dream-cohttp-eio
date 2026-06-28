@@ -70,32 +70,30 @@ struct
 
   let derive_key secret =
     secret
-    |> Cstruct.of_string
-    |> Mirage_crypto.Hash.SHA256.digest
-    |> Mirage_crypto.Cipher_block.AES.GCM.of_secret
+    |> Digestif.SHA256.digest_string
+    |> Digestif.SHA256.to_raw_string
+    |> Mirage_crypto.AES.GCM.of_secret
 
   (* TODO Memoize keys or otherwise avoid key derivation on every call. *)
   let encrypt_with_nonce secret nonce plaintext associated_data =
     let key = derive_key secret in
-    let adata = Option.map Cstruct.of_string associated_data in
     let ciphertext =
-      Mirage_crypto.Cipher_block.AES.GCM.authenticate_encrypt
+      Mirage_crypto.AES.GCM.authenticate_encrypt
         ~key
         ~nonce
-        ?adata
-        (Cstruct.of_string plaintext)
-      |> Cstruct.to_string
+        ?adata:associated_data
+        plaintext
     in
 
-    "\x00" ^ (Cstruct.to_string nonce) ^ ciphertext
+    "\x00" ^ nonce ^ ciphertext
 
   let encrypt ?associated_data ~secret plaintext =
     encrypt_with_nonce
-      secret (Random.random_buffer 12) plaintext associated_data
+      secret (Random.random 12) plaintext associated_data
 
   let test_encrypt ?associated_data ~secret ~nonce plaintext =
     encrypt_with_nonce
-      secret (Cstruct.of_string nonce) plaintext associated_data
+      secret nonce plaintext associated_data
 
   let decrypt ?associated_data ~secret ciphertext =
     let key = derive_key secret in
@@ -105,17 +103,11 @@ struct
       if ciphertext.[0] != prefix then
         None
       else
-        let adata = Option.map Cstruct.of_string associated_data in
-        let plaintext =
-          Mirage_crypto.Cipher_block.AES.GCM.authenticate_decrypt
-            ~key
-            ~nonce:(Cstruct.of_string ~off:1 ~len:12 ciphertext)
-            ?adata
-            (Cstruct.of_string ciphertext ~off:13)
-        in
-        match plaintext with
-        | None -> None
-        | Some plaintext -> Some (Cstruct.to_string plaintext)
+        Mirage_crypto.AES.GCM.authenticate_decrypt
+          ~key
+          ~nonce:(String.sub ciphertext 1 12)
+          ?adata:associated_data
+          (String.sub ciphertext 13 (String.length ciphertext - 13))
 end
 
 let secrets_field =
