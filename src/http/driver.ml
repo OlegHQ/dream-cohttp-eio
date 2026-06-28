@@ -582,8 +582,7 @@ let serve_with_details
       Eio.Net.listen
         ~sw env#net listen_address ~reuse_addr:true ~backlog:1000 in
 
-    Mirage_crypto_rng_eio.run (module Mirage_crypto_rng.Fortuna) env
-    @@ fun () ->
+    Mirage_crypto_rng_unix.use_default ();
 
     (* TODO The error handler. *)
     Cohttp_eio.Server.run ~on_error:raise socket cohttp_server
