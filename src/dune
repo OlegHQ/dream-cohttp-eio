@@ -13,5 +13,6 @@
   eio
   fmt.tty
   logs
+  multipart_form
   ptime.clock.os
  ))

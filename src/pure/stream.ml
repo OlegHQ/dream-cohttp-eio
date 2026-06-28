@@ -393,37 +393,37 @@ let forward (reader : reader) stream =
   loop ()
 
 let read_convenience stream =
-  (* TODO Restore
-  let promise, resolver = Lwt.wait () in
-  let close _code = Lwt.wakeup_later resolver None in
-  let abort exn = Lwt.wakeup_later_exn resolver exn in
+  let rec read_once () =
+    let promise, resolver = Eio.Promise.create () in
+    let close _code = Eio.Promise.resolve_ok resolver `Close in
+    let abort exn = Eio.Promise.resolve_error resolver exn in
 
-  let rec loop () =
     stream.reader.read
       ~data:(fun buffer offset length _binary _fin ->
         Bigstringaf.sub buffer ~off:offset ~len:length
         |> Bigstringaf.to_string
-        |> Option.some
-        |> Lwt.wakeup_later resolver)
+        |> fun chunk -> Eio.Promise.resolve_ok resolver (`Data chunk))
 
-      ~flush:loop
+      ~flush:(fun () -> Eio.Promise.resolve_ok resolver `Retry)
 
       ~ping:(fun buffer offset length ->
-        stream.writer.pong buffer offset length ~close ~exn:abort loop)
+        stream.writer.pong buffer offset length
+          ~close
+          ~exn:abort
+          (fun () -> Eio.Promise.resolve_ok resolver `Retry))
 
       ~pong:(fun _buffer _offset _length ->
-        loop ())
+        Eio.Promise.resolve_ok resolver `Retry)
 
       ~close
 
-      ~exn:abort
+      ~exn:abort;
+    match Eio.Promise.await_exn promise with
+    | `Data chunk -> Some chunk
+    | `Close -> None
+    | `Retry -> read_once ()
   in
-  loop ();
-
-  promise
-  *)
-  ignore stream;
-  assert false
+  read_once ()
 
 (* TODO It's probably best to protect "wakeups" of the promise to prevent
    Invalid_argument from Lwt. *)
