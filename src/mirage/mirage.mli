@@ -881,12 +881,12 @@ module Make
       {{:https://github.com/aantron/dream/tree/master/example/e-json#files}
       [e-json]}. *)
 
-  val origin_referrer_check : middleware
+  val origin_referrer_check : ?origins:string list -> middleware
   (** CSRF protection for AJAX requests. Either the method must be [`GET] or
       [`HEAD], or:
 
       - [Origin:] or [Referer:] must be present, and
-      - their value must match [Host:]
+      - their value must match [Host:] or one of the exact allowed [origins].
 
       Responds with [400 Bad Request] if the check fails. See example
       {{:https://github.com/aantron/dream/tree/master/example/e-json#security}
@@ -899,8 +899,8 @@ module Make
       [`HEAD] requests to trigger important side effects if relying only on
       {!Dream.origin_referrer_check}.
 
-      Future extensions to this function may use [X-Forwarded-Host] or host
-      whitelists.
+      [origins] should contain exact origins such as
+      ["https://example.com"] or ["http://localhost:8080"], without paths.
 
       For more thorough protection, generate CSRF tokens with {!Dream.csrf_token},
       send them to the client (for instance, in [<meta>] tags of a single-page
