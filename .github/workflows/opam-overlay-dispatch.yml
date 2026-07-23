@@ -1,0 +1,29 @@
+name: Notify OlegHQ opam overlay
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch immutable tagged release
+        env:
+          OVERLAY_TOKEN: ${{ secrets.OPAM_OVERLAY_DISPATCH_TOKEN }}
+          SOURCE: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$OVERLAY_TOKEN"
+          curl --fail-with-body --request POST \
+            --header "Accept: application/vnd.github+json" \
+            --header "Authorization: Bearer $OVERLAY_TOKEN" \
+            --header "X-GitHub-Api-Version: 2022-11-28" \
+            https://api.github.com/repos/OlegHQ/opam-overlay/dispatches \
+            --data "{\"event_type\":\"publish-opam-release\",\"client_payload\":{\"source\":\"${SOURCE}\",\"tag\":\"${TAG}\"}}"
